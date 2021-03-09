@@ -8,6 +8,8 @@ User = get_user_model()
 
 class AccountAPITestCase(APITestCase):
 
+    #Register User
+
     '''Can register a new user'''
     def test_user_registration(self):
         url = reverse('account:register')
@@ -24,12 +26,12 @@ class AccountAPITestCase(APITestCase):
     '''Duplicating a username should be a bad request'''
     def test_duplicate_username_fail(self):
 
-        url = reverse('account:register')
-        data = {
+        first_url = reverse('account:register')
+        first_data = {
             'username': 'bean',
             'password': 'boom12345'
         }
-        first_response = self.client.post(url, data, format='json')
+        first_response = self.client.post(first_url, first_data, format='json')
 
         url = reverse('account:register')
         data = {
@@ -63,3 +65,59 @@ class AccountAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         profile = Profile.objects.get(name='bean')
         self.assertTrue(profile)
+
+    #Login User
+
+    '''Can login a registred user'''
+    def test_user_login(self):
+
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        #Login
+        url = reverse('account:login')
+        data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    '''Incorrect Credentials    -   Password'''
+    def test_user_login_wrong_password(self):
+
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        #Login
+        url = reverse('account:login')
+        data = {
+            'username': 'bean',
+            'password': 'boom12348'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    '''Incorrect Credentials    -   Not registered'''
+    def test_user_login_fail(self):
+
+        url = reverse('account:login')
+        data = {
+            'username': 'bean',
+            'password': 'boom12348'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
