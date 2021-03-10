@@ -1,7 +1,12 @@
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
+from .serializers import (  UserRegistrationSerializer, 
+                            UserLoginSerializer, 
+                            UserSerializer,
+                            ProfileSerializer)
 from rest_framework import generics, response
-from .permissions import AnonPermissionOnly
+from .permissions import AnonPermissionOnly, IsOwnerOrReadOnly
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from account.models import Profile
+from django.shortcuts import get_object_or_404, Http404
 
 from django.contrib.auth import get_user_model
 
@@ -29,3 +34,29 @@ class UserLoginAPIView(generics.GenericAPIView):
             "tokens":{"access": str(access_token),
                     "refresh": str(refresh_token)}
         })
+
+class ProfileAPIView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsOwnerOrReadOnly]
+    serializer_class = ProfileSerializer
+
+    def get_object(self, *args, **kwargs):
+        username = self.kwargs.get("username")
+        if username is not None:
+            user = get_object_or_404(User, username=username)
+            obj = get_object_or_404(Profile, user=user)
+            if obj == None:
+                raise Http404
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    def get_serializer_context(self, *args, **kwargs):
+        user = self.request.user
+        profile = self.get_object()
+
+        is_owner = False 
+        if profile.owner == user:
+            is_owner = True
+
+        return {
+            'is_owner': is_owner
+        }

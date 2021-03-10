@@ -4,9 +4,17 @@ from account.models import Profile
 from rest_framework import status
 from django.contrib.auth import get_user_model
 
+import os
+from PIL import Image
+import tempfile
+
 User = get_user_model()
 
 class AccountAPITestCase(APITestCase):
+
+    ''' We could've registered a user, at setup.
+        Since this is an api test. It's better to deal with endpoints, instead of the models
+        '''
 
     #Register User
 
@@ -121,3 +129,84 @@ class AccountAPITestCase(APITestCase):
         response = self.client.post(url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    '''User updating their own profile'''
+    def test_profile_update(self):
+
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        user = User.objects.get(username='bean')
+
+        self.client.force_login(user)
+
+        url = reverse(('account:profile'), kwargs={'username':'bean'})
+        data = {
+            'name': 'Bean',
+            'bio': "I don't know what to write"
+        }
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    '''Updating other user's profiles should fail'''
+    def test_profile_update_fail(self):
+
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'nate',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        user = User.objects.get(username='nate')
+
+        self.client.force_login(user)
+
+        url = reverse(('account:profile'), kwargs={'username':'bean'})
+        data = {
+            'name': 'Nate',
+            'bio': "This is not mine."
+        }
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    
+    '''Profile updating by owner, with image'''
+    def test_profile_update_with_image(self):
+
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        user = User.objects.get(username='bean')
+
+        self.client.force_login(user)
+
+        url = reverse(('account:profile'), kwargs={'username': 'bean'})
+
+        image_item = Image.new('RGB', (800, 1200), (175, 200, 0))
+        tmp_file = tempfile.NamedTemporaryFile(suffix='.jpg')
+        image_item.save(tmp_file, format='JPEG')
+        with open(tmp_file.name, 'rb') as image_obj:
+            data = {
+                'image': image_obj
+            }
+            response = self.client.put(url, data, format='multipart')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
