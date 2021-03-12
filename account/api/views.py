@@ -2,7 +2,7 @@ from .serializers import (  UserRegistrationSerializer,
                             UserLoginSerializer, 
                             UserSerializer,
                             ProfileSerializer)
-from rest_framework import generics, response
+from rest_framework import generics, response, permissions
 from .permissions import AnonPermissionOnly, IsOwnerOrReadOnly
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from account.models import Profile
@@ -52,6 +52,24 @@ class ProfileAPIView(generics.RetrieveUpdateAPIView):
     def get_serializer_context(self, *args, **kwargs):
         user = self.request.user
         profile = self.get_object()
+
+        is_owner = False 
+        if profile.owner == user:
+            is_owner = True
+
+        return {
+            'is_owner': is_owner
+        }
+
+class ProfileSearchAPIView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ProfileSerializer
+    queryset = Profile.objects.all()
+    search_fields = ['user__username', 'bio', 'name']
+
+    def get_serializer_context(self, *args, **kwargs):
+        user = self.request.user
+        profile = Profile.objects.get(user=user)
 
         is_owner = False 
         if profile.owner == user:

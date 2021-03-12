@@ -197,6 +197,7 @@ class AccountAPITestCase(APITestCase):
 
         user = User.objects.get(username='bean')
 
+        #Login
         self.client.force_login(user)
 
         url = reverse(('account:profile'), kwargs={'username': 'bean'})
@@ -210,3 +211,24 @@ class AccountAPITestCase(APITestCase):
             }
             response = self.client.put(url, data, format='multipart')
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    '''User searching endpoint'''
+    def test_profile_search_list(self):
+        #Register
+        register_url = reverse('account:register')
+        register_data = {
+            'username': 'bean',
+            'password': 'boom12345'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        user = User.objects.get(username='bean')
+
+        #Login
+        self.client.force_login(user)
+
+        url = reverse(('account:search_profiles'))
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
