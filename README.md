@@ -6,8 +6,13 @@
   - account/profile/<str:username>/
   - account/profile-search/
   
-## Requirements
+## Requirements:
   - Django==3.1.7
   - djangorestframework==3.12.2
   - djangorestframework-simplejwt==4.6.0
   - Pillow==8.1.1
+
+## Usage:
+  - Install the requirements.
+  - Make migrations. i.e. For the account model.
+  - Migrate.
